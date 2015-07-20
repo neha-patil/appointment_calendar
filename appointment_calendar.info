@@ -3,4 +3,4 @@ description = Custom Appointment Calendar
 core = 7.x
 package = Calendar
 dependencies[] = calendar
-dependencies[] = date
+dependencies[] = dat
