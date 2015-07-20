@@ -1,0 +1,147 @@
+<?php
+
+function _productcustomtype_installed_fields() {
+  $t = get_t();
+  return array(
+    'appointment_date' => array(
+      'field_name' => 'appointment_date',
+      'label' => $t('Appointment Date'),
+      'type' => 'date'
+    ),
+    'appointment_slot' => array(
+      'field_name' => 'appointment_slot',
+      'label' => $t('Appointment Slot '),
+      'type' => 'list_text'
+    )
+  );
+}
+
+function _productcustomtype_installed_instances() {
+  $t = get_t();
+  return array(
+    'appointment_date' => array(
+      'field_name' => 'appointment_date',
+      'type' => 'text',
+      'label' => $t('Appointment Date'),
+      'widget' => array(
+        'type' => 'date_popup'
+      ),
+      'date_format' => 'Y-m-d',
+      'display' => array(
+        'default' => array(
+          'label' => $t('Appointment Date'),
+          'type' => 'date_popup'
+        )
+      )
+    ),
+    'appointment_slot' => array(
+      'field_name' => 'appointment_slot',
+      'type' => 'text',
+      'label' => $t('Appointment Slot'),
+      'widget' => array(
+        'type' => 'list_text'
+      ),
+      'display' => array(
+        'default' => array(
+          'label' => $t('Appointment Slot'),
+          'type' => 'list_text'
+        )
+      )
+    )
+  );
+}
+
+function add_custom_fields() {
+  foreach (_productcustomtype_installed_fields() as $field) {
+    field_create_field($field);
+  }
+  foreach (_productcustomtype_installed_instances() as $fieldinstance) {
+    $fieldinstance['entity_type'] = 'node';
+    $fieldinstance['bundle'] = 'appointment_calendar';
+    print_r($fieldinstance);
+    field_create_instance($fieldinstance);
+  }
+}
+
+function appointment_calendar_install() {
+
+  $t = get_t();
+  $name = 'appointment_calendar';
+
+// Define the node type.
+  $jobs = array(
+    'type' => $name,
+    'name' => $t('Appointment Calendar'),
+    'base' => 'node_content',
+    'has_title' => TRUE,
+    'description' => $t('Appointment Calendar Node.'),
+    'custom' => TRUE,
+  );
+
+// Set other node defaults not declared above.
+  $content_type = node_type_set_defaults($jobs);
+//  node_types_rebuild();
+//  $types = node_type_get_types();
+  // node_add_body_field($types['appointment_calendar']);
+  add_custom_fields();
+}
+
+function appointment_calendar_uninstall() {
+  $ournewtype = 'appointment_calendar';
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => $ournewtype));
+  $nodeids = array();
+  foreach ($result as $row) {
+    $nodeids[] = $row->nid;
+  }
+  node_delete_multiple($nodeids);
+  delete_custom_fields();
+  node_type_delete($ournewtype);
+  field_purge_batch(500);
+}
+
+function delete_custom_fields() {
+  foreach (array_keys(_productcustomtype_installed_fields()) as $field) {
+    field_delete_field($field);
+  }
+  $instances = field_info_instances('node', 'appointment_calendar');
+  foreach ($instances as $instance_name => $fieldinstance) {
+    field_delete_instance($fieldinstance);
+  }
+}
+
+function appointment_calendar_schema() {
+  $schema ['appointment_date'] = array(
+    // Example (partial) specification for table "node".
+    'description' => 'The base table for Appointment Calendar Dates.',
+    'fields' => array(
+      'date' => array(
+        'description' => 'Appointment Date',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'no_slots' => array(
+        'description' => 'No of Time Slots for particular Day.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'slot_values' => array(
+        'description' => 'Time Slots values for particular Day.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+      ),
+      'slot_capacity' => array(
+        'description' => 'Time Slots Capacity for particular Day.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+      ),
+    ),
+  );
+  return $schema;
+}
